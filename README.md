@@ -7,7 +7,7 @@ actually expect — before a real buyer (human or AI) hits it.
 Zero dependencies. Runs anywhere Node ≥ 18 runs. Never touches your keys.
 
 ```bash
-npx mcpdoctor inspect https://your-endpoint/v1/paid --method=POST
+npx @eidonze/mcpdoctor inspect https://your-endpoint/v1/paid --method=POST
 ```
 
 ## Why
