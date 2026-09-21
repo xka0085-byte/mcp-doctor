@@ -1,0 +1,15 @@
+{
+  "name": "mcpdoctor",
+  "version": "0.1.1",
+  "description": "Read-only MCP and x402 endpoint preflight checks: 402 challenge shape, payment document parsing, accepts[] conformance, discovery manifests, response digest. Zero dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "mcpdoctor": "bin/mcpdoctor.mjs" },
+  "main": "bin/mcpdoctor.mjs",
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node test/smoke.mjs" },
+  "keywords": ["mcp", "x402", "model-context-protocol", "developer-tools", "diagnostics", "web3", "solana", "usdc", "agent-payments", "linter"],
+  "repository": { "type": "git", "url": "git+https://github.com/xka0085-byte/mcp-doctor.git" },
+  "bugs": { "url": "https://github.com/xka0085-byte/mcp-doctor/issues" },
+  "homepage": "https://github.com/xka0085-byte/mcp-doctor#readme"
+}
