@@ -94,3 +94,8 @@ Live tools page: <https://x402-endpoint-inspection.app.workbuddy.host/tools.html
 ## License
 
 MIT
+---
+
+## Suite hub
+
+Part of the [Agent / Chain Evidence Tools](https://xka0085-byte.github.io/evidence-tools/) suite — read-only, no-keys, no-payments diagnostics for AI agents on Web3.
