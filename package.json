@@ -1,6 +1,6 @@
 {
   "name": "@eidonze/mcpdoctor",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "mcpName": "io.github.xka0085-byte/mcpdoctor",
   "description": "CLI for inspecting MCP and x402 endpoints: parses the HTTP 402 payment document (v1/v2 accepts[]), checks /.well-known/mcp and /.well-known/x402 discovery manifests, returns a response SHA-256 digest. Read-only endpoint inspector and preflight debugging tool for AI-agent payment endpoints. Not an MCP server. Zero dependencies.",
   "license": "MIT",
@@ -13,5 +13,5 @@
   "keywords": ["mcp", "model-context-protocol", "mcp-cli", "mcp-inspector", "mcp-endpoint-inspector", "mcp-debugging", "x402", "cli", "developer-tools", "diagnostics"],
   "repository": { "type": "git", "url": "git+https://github.com/xka0085-byte/mcp-doctor.git" },
   "bugs": { "url": "https://github.com/xka0085-byte/mcp-doctor/issues" },
-  "homepage": "https://github.com/xka0085-byte/mcp-doctor#readme"
+  "homepage": "https://xka0085-byte.github.io/evidence-tools/"
 }
