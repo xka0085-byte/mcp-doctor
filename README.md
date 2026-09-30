@@ -1,5 +1,7 @@
 # mcpdoctor
 
+> ⚠️ **Official package notice**: this is the official `mcpdoctor`, published by npm user [`eidonze`](https://www.npmjs.com/~eidonze), repo [`xka0085-byte/mcp-doctor`](https://github.com/xka0085-byte/mcp-doctor). We are **NOT affiliated** with **mcpdoctor.dev** — that is a *different* product (an MCP **server-auditing** tool). This `mcpdoctor` is an independent, read-only **402/x402 payment-endpoint inspector CLI**. Same name, different tool. Verify the package by its scope: `@eidonze/mcpdoctor`.
+
 **mcpdoctor is a read-only CLI for inspecting MCP and x402 endpoints.**
 
 Point it at a URL, get one `PASS / FAIL / UNKNOWN` report:
