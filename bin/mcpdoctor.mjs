@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 const MAX_BODY = 1024 * 1024;
 const TIMEOUT = 10_000;
-const VERSION = '0.1.2';
+const VERSION = '0.1.3';
 
 const help = `mcpdoctor ${VERSION}
 
