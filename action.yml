@@ -1,0 +1,52 @@
+name: MCP Trust Check
+description: Read-only MCP and x402 endpoint diagnostics for GitHub Actions
+author: Eidonze
+branding:
+  icon: shield
+  color: blue
+inputs:
+  endpoint:
+    description: Public MCP or x402 endpoint URL to inspect
+    required: true
+  mode:
+    description: Inspection mode, inspect for x402 preflight or schema for MCP tools/list
+    required: false
+    default: schema
+  format:
+    description: Report format
+    required: false
+    default: markdown
+  fail-on:
+    description: Fail the job when the report status is FAIL or UNKNOWN
+    required: false
+    default: true
+runs:
+  using: composite
+  steps:
+    - name: Run MCP Trust Check
+      shell: bash
+      env:
+        ENDPOINT: ${{ inputs.endpoint }}
+        MODE: ${{ inputs.mode }}
+        FORMAT: ${{ inputs.format }}
+        FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        set -o pipefail
+        if ! command -v node >/dev/null 2>&1; then
+          echo "Node.js >= 18 is required" >&2
+          exit 3
+        fi
+        if [ "$MODE" = "schema" ]; then
+          node "$GITHUB_ACTION_PATH/bin/mcpdoctor.mjs" schema "$ENDPOINT" "--format=$FORMAT"
+          status=$?
+        elif [ "$MODE" = "inspect" ]; then
+          node "$GITHUB_ACTION_PATH/bin/mcpdoctor.mjs" inspect "$ENDPOINT" "--format=$FORMAT"
+          status=$?
+        else
+          echo "Unsupported mode: $MODE" >&2
+          exit 3
+        fi
+        if [ "$FAIL_ON" = "true" ] && [ "$status" -ne 0 ]; then
+          exit "$status"
+        fi
+        exit 0

@@ -8,7 +8,7 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'bin', 'mcpdoctor.mjs');
-const server = createServer((request, response) => {
+const server = createServer(async (request, response) => {
   if (request.url === '/good') {
     response.writeHead(402, { 'content-type': 'application/json', 'payment-required': JSON.stringify({ x402Version: 2, accepts: [{ scheme: 'exact', network: 'eip155:8453', asset: 'USDC', amount: '10000', payTo: '0x1234567890123456789012345678901234567890' }] }) });
     response.end(JSON.stringify({ x402Version: 2, accepts: [{ scheme: 'exact', network: 'eip155:8453', asset: 'USDC', amount: '10000', payTo: '0x1234567890123456789012345678901234567890' }] }));
@@ -20,6 +20,14 @@ const server = createServer((request, response) => {
     response.writeHead(402, { 'content-type': 'application/json', 'x-payment-required': JSON.stringify({ vendor: 'VendorHintNoAccepts', amount: '1000', decimals: 6 }) });
     response.end(JSON.stringify({ x402Version: 2, resource: { url: 'x', description: 'd', mimeType: 'application/json' }, accepts: [{ scheme: 'exact', network: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1', amount: '1000', asset: 'MINT', payTo: 'PayToAddr' }] }));
     return;
+  }
+  if (request.url === '/mcp') {
+    let incoming = ''; for await (const chunk of request) incoming += chunk;
+    const rpc = JSON.parse(incoming || '{}');
+    if (rpc.method === 'initialize') {
+      response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'fixture', version: '1' }, capabilities: {} } })); return;
+    }
+    response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result: { tools: [{ name: 'hello', description: 'Returns a greeting.', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Name.' } }, required: ['name'] } }] } })); return;
   }
   // regression (our original production bug): body validation must not shadow the 402
   if (request.url === '/bad-400') {
@@ -37,6 +45,15 @@ const port = server.address().port;
 function run(url, ...args) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [cli, 'inspect', url, '--format=json', ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = ''; let stderr = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
+  });
+}
+function runSchema(url) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [cli, 'schema', url, '--format=json'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = ''; let stderr = '';
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
@@ -61,6 +78,11 @@ try {
   const bad400Report = JSON.parse(bad400.stdout);
   assert.equal(bad400Report.finalStatus, 'FAIL');
   assert.ok(bad400Report.findings.some((f) => f.code === 'NO_402'), 'must flag 400-instead-of-402');
+  const schema = await runSchema(`http://127.0.0.1:${port}/mcp`);
+  assert.equal(schema.code, 0, schema.stderr);
+  const schemaReport = JSON.parse(schema.stdout);
+  assert.equal(schemaReport.finalStatus, 'PASS', JSON.stringify(schemaReport.findings));
+  assert.equal(schemaReport.mcp.toolCount, 1);
   const help = await new Promise((resolve) => {
     const child = spawn(process.execPath, [cli, '--help'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = ''; child.stdout.on('data', (chunk) => { stdout += chunk; }); child.on('close', (code) => resolve({ code, stdout }));

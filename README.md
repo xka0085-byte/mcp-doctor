@@ -26,6 +26,46 @@ npm install -g @eidonze/mcpdoctor    # or run without installing:
 npx @eidonze/mcpdoctor inspect <url>
 ```
 
+Current release: `0.1.4`. The CLI is read-only: it does not sign, pay, retry payment, invoke MCP tools, or accept private keys.
+
+## GitHub Actions
+
+Run the check in pull requests without installing a package or storing a key:
+
+```yaml
+name: MCP Trust Check
+on: [pull_request]
+
+jobs:
+  mcp-trust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: xka0085-byte/mcpdoctor@v1
+        with:
+          endpoint: https://your-mcp-server.example/mcp
+          mode: schema
+          format: markdown
+```
+
+`schema` performs read-only `initialize` and `tools/list` checks. Use `mode: inspect`
+for a read-only x402 HTTP 402 preflight. A non-zero exit means the observed result
+was `FAIL` or `UNKNOWN`; this is a CI gate, not a security certification.
+
+## Why
+
+Shipping an x402 service ourselves ([ReceiptRail](https://github.com/xka0085-byte/agenttoll)),
+we hit every way a paid endpoint can silently break:
+
+- an endpoint that validates the request body **before** returning the 402
+  challenge is invisible to every x402 client — they only react to `402`;
+- payment documents arrive in **four different places** (`Payment-Required` /
+  `X-Payment-Required` / `WWW-Authenticate` headers, or the response body) and
+  in **two different shapes** (v1 top-level `accepts[]`, v2 nested `x402.accepts`);
+  parsers that only look at one place report false failures;
+- vendor hint headers without `accepts[]` can shadow the real payment document.
+
+Each check in mcpdoctor maps to a failure mode we actually hit in production.
+
 ## Usage
 
 ```bash
@@ -40,7 +80,18 @@ mcpdoctor inspect <url> [--method=GET|POST] [--format=json|markdown]
 
 Exit codes: `0` PASS · `1` FAIL · `2` UNKNOWN (network/timeout) · `3` usage error.
 
+## Tool schema checks
+
+Inspect MCP initialization and `tools/list` without calling tools:
+
+```bash
+node mcpdoctor/bin/mcpdoctor.mjs schema https://your-mcp-server.example/mcp --json
+```
+
+This is deterministic static lint, not a prediction of model tool selection or a cross-client certification. See [`SCHEMA-MVP.md`](./SCHEMA-MVP.md).
+
 ## Real examples (captured 2026-09-29, against live endpoints)
+
 
 Inspecting an MCP endpoint that is free (no payment gate) — the tool reports
 the 200 instead of a 402, and still verifies the discovery manifests:

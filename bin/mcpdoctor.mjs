@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 const MAX_BODY = 1024 * 1024;
 const TIMEOUT = 10_000;
-const VERSION = '0.1.3';
+const VERSION = '0.1.4';
 
 const help = `mcpdoctor ${VERSION}
 
@@ -11,6 +11,7 @@ Read-only MCP/x402 endpoint diagnostics.
 
 Usage:
   mcpdoctor inspect <url> [--method=GET|POST] [--format=json|markdown]
+  mcpdoctor schema <url> [--format=json|markdown]
   mcpdoctor --help
 
 This MVP never signs, pays, retries payment, or accepts a private key.`;
@@ -126,9 +127,47 @@ function markdown(report) {
   return lines.join('\n');
 }
 
+async function schemaCommand(url, format) {
+  const findings = [];
+  const add = (code, severity, message) => findings.push({ code, severity, message });
+  const response = await fetch(url, { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT), headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': '2025-03-26' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'mcpdoctor', version: VERSION } } }) });
+  const initText = await readBody(response);
+  if (!response.ok) throw new Error(`MCP initialize returned HTTP ${response.status}`);
+  const init = json(initText);
+  if (!init?.result?.protocolVersion) add('INITIALIZE_RESPONSE_INVALID', 'FAIL', 'Initialize response did not include result.protocolVersion');
+  const headers = { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': init?.result?.protocolVersion ?? '2025-03-26' };
+  const list = await fetch(url, { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT), headers, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) });
+  const listText = await readBody(list);
+  if (!list.ok) throw new Error(`tools/list returned HTTP ${list.status}`);
+  const parsed = json(listText);
+  const tools = parsed?.result?.tools;
+  if (!Array.isArray(tools)) add('TOOLS_LIST_INVALID', 'FAIL', 'tools/list response did not contain result.tools[]');
+  else if (!tools.length) add('NO_TOOLS', 'WARN', 'Server exposes an empty tool list');
+  else for (const [i, tool] of tools.entries()) {
+    const at = `tools[${i}]`;
+    if (typeof tool.name !== 'string' || !tool.name.trim()) add('TOOL_NAME_MISSING', 'FAIL', `${at} has no name`);
+    if (typeof tool.description !== 'string' || !tool.description.trim()) add('TOOL_DESCRIPTION_MISSING', 'WARN', `${at} has no description`);
+    const schema = tool.inputSchema;
+    if (!schema || schema.type !== 'object') add('INPUT_SCHEMA_NOT_OBJECT', 'FAIL', `${at}.inputSchema must declare type: object`);
+    const props = schema?.properties;
+    if (props !== undefined && (!props || typeof props !== 'object' || Array.isArray(props))) add('PROPERTIES_INVALID', 'FAIL', `${at}.inputSchema.properties must be an object`);
+    for (const req of schema?.required ?? []) if (!props?.[req]) add('REQUIRED_PROPERTY_UNDEFINED', 'FAIL', `${at} requires undeclared property ${req}`);
+    for (const [key, property] of Object.entries(props ?? {})) if (typeof property?.description !== 'string' || !property.description.trim()) add('PROPERTY_DESCRIPTION_MISSING', 'WARN', `${at}.${key} has no description`);
+  }
+  if (!findings.length) add('STATIC_SCHEMA_CHECKS_PASSED', 'INFO', `${tools.length} tools passed deterministic schema checks`);
+  const report = { reportVersion: 1, inspectorVersion: VERSION, mode: 'read-only MCP initialize + tools/list', checkedAt: new Date().toISOString(), endpoint: url.toString(), finalStatus: findings.some(x => x.severity === 'FAIL') ? 'FAIL' : 'PASS', mcp: { protocolVersion: init?.result?.protocolVersion ?? null, serverInfo: init?.result?.serverInfo ?? null, toolCount: Array.isArray(tools) ? tools.length : null }, findings, limitations: ['Static schema checks do not predict model tool selection or prove behavior across all clients.', 'No tool was called; side effects, authorization, data quality and security were not tested.'] };
+  console.log(format === 'json' ? JSON.stringify(report, null, 2) : `# MCP Tool Schema Report\n\n- Status: **${report.finalStatus}**\n- Endpoint: ${report.endpoint}\n- Protocol: ${report.mcp.protocolVersion ?? 'unknown'}\n- Tools: ${report.mcp.toolCount ?? 'unknown'}\n\n${findings.map(x => `- **${x.severity}** \`${x.code}\`: ${x.message}`).join('\n')}\n\n${report.limitations.map(x => `- ${x}`).join('\n')}`);
+  process.exitCode = report.finalStatus === 'PASS' ? 0 : 1;
+}
+
 const args = process.argv.slice(2);
 if (args.includes('--help') || args.length === 0) { console.log(help); process.exitCode = args.length ? 0 : 3; }
-else if (args[0] !== 'inspect') die('only the inspect command is available in this MVP');
+else if (args[0] === 'schema') {
+  let url; try { url = new URL(args[1]); if (!['http:', 'https:'].includes(url.protocol)) throw new Error('only http(s) URLs are supported'); } catch (error) { die(error.message); }
+  const format = args.includes('--json') || args.includes('--format=json') ? 'json' : 'markdown';
+  if (url) schemaCommand(url, format).catch((error) => { console.error(`UNKNOWN: ${redact(error.message)}`); process.exitCode = 2; });
+}
+else if (args[0] !== 'inspect') die('only inspect and schema commands are available in this MVP');
 else {
   const rawUrl = args[1];
   const method = (args.find((arg) => arg.startsWith('--method='))?.split('=')[1] ?? 'GET').toUpperCase();
