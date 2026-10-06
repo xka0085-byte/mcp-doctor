@@ -6,6 +6,14 @@ Read-only checks for MCP tool schemas and x402 payment endpoints. Use it before 
 [![CI](https://github.com/xka0085-byte/mcp-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/xka0085-byte/mcp-doctor/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+## Find the right guide
+
+- [MCP schema checker](docs/mcp-schema-checker.md)
+- [x402 endpoint inspector](docs/x402-endpoint-inspector.md)
+- [MCP security CI](docs/mcp-security-ci.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [OAuth scope and current limits](docs/mcp-oauth-diagnostics.md)
+
 ## Run it now
 
 Check an MCP server without calling any tools:
