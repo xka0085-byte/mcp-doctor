@@ -8,6 +8,7 @@ Read-only checks for MCP tool schemas and x402 payment endpoints. Use it before 
 
 ## Find the right guide
 
+- [Public documentation site](https://xka0085-byte.github.io/mcp-doctor/)
 - [MCP schema checker](docs/mcp-schema-checker.md)
 - [x402 endpoint inspector](docs/x402-endpoint-inspector.md)
 - [MCP security CI](docs/mcp-security-ci.md)
