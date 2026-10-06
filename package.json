@@ -1,6 +1,6 @@
 {
   "name": "@eidonze/mcpdoctor",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "mcpName": "io.github.xka0085-byte/mcpdoctor",
   "description": "Read-only MCP and x402 endpoint preflight checks: 402 challenge shape, payment document parsing, accepts[] conformance, discovery manifests, response digest. Zero dependencies.",
   "license": "MIT",
@@ -10,7 +10,7 @@
   "files": ["bin", "test", "README.md", "LICENSE"],
   "engines": { "node": ">=18" },
   "scripts": { "test": "node test/smoke.mjs" },
-  "keywords": ["mcp", "model-context-protocol", "mcp-cli", "mcp-inspector", "mcp-endpoint-inspector", "mcp-debugging", "x402", "cli", "developer-tools", "diagnostics"],
+  "keywords": ["mcp", "model-context-protocol", "mcp-security", "mcp-scanner", "mcp-schema", "mcp-oauth", "agent-security", "tool-schema", "x402-inspector", "http-402", "mcp-cli", "mcp-debugging", "developer-tools", "diagnostics", "x402", "cli"],
   "repository": { "type": "git", "url": "git+https://github.com/xka0085-byte/mcp-doctor.git" },
   "bugs": { "url": "https://github.com/xka0085-byte/mcp-doctor/issues" },
   "homepage": "https://xka0085-byte.github.io/evidence-tools/"

@@ -1,36 +1,39 @@
 # mcpdoctor
 
-> ⚠️ **Official package notice**: this is the official `mcpdoctor`, published by npm user [`eidonze`](https://www.npmjs.com/~eidonze), repo [`xka0085-byte/mcp-doctor`](https://github.com/xka0085-byte/mcp-doctor). We are **NOT affiliated** with **mcpdoctor.dev** — that is a *different* product (an MCP **server-auditing** tool). This `mcpdoctor` is an independent, read-only **402/x402 payment-endpoint inspector CLI**. Same name, different tool. Verify the package by its scope: `@eidonze/mcpdoctor`.
+Read-only checks for MCP tool schemas and x402 payment endpoints. Use it before an agent client or buyer depends on an endpoint.
 
-**mcpdoctor is a read-only CLI for inspecting MCP and x402 endpoints.**
+[![npm](https://img.shields.io/npm/v/@eidonze/mcpdoctor?logo=npm)](https://www.npmjs.com/package/@eidonze/mcpdoctor)
+[![CI](https://github.com/xka0085-byte/mcp-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/xka0085-byte/mcp-doctor/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Point it at a URL, get one `PASS / FAIL / UNKNOWN` report:
+## Run it now
 
-- the **HTTP 402 payment document** — parsed from the known locations
-  (`Payment-Required` / `X-Payment-Required` / `WWW-Authenticate` headers or
-  the response body), in both x402 v1 (`accepts[]`) and v2 (`x402.accepts`)
-  shapes, with every `scheme / network / asset / amount / payTo` field checked;
-- the **discovery manifests** — whether `/.well-known/mcp/server.json` and
-  `/.well-known/x402` are reachable, with a SHA-256 of each;
-- a **SHA-256 digest** of the response body, plus latency and size.
-
-mcpdoctor is **not an MCP server** and does not implement the MCP protocol.
-It is the endpoint inspector you run *before* pointing an MCP client or an
-x402 buyer at an endpoint — a preflight/debugging tool for AI-agent payment
-infrastructure. Zero dependencies. Node ≥ 18. Never touches keys, never pays.
-
-## Install
+Check an MCP server without calling any tools:
 
 ```bash
-npm install -g @eidonze/mcpdoctor    # or run without installing:
-npx @eidonze/mcpdoctor inspect <url>
+npx @eidonze/mcpdoctor@0.1.5 schema https://your-mcp-server.example/mcp --json
 ```
 
-Current release: `0.1.4`. The CLI is read-only: it does not sign, pay, retry payment, invoke MCP tools, or accept private keys.
+Check an x402 endpoint without paying:
+
+```bash
+npx @eidonze/mcpdoctor@0.1.5 inspect https://your-api.example/paid --method=POST --json
+```
+
+Requires Node.js 18+. No API key or wallet is needed.
+
+## Which command?
+
+| Command | Checks | Does not do |
+|---|---|---|
+| `schema` | MCP `initialize`, `tools/list`, tool names, descriptions, and JSON schemas | Does not call tools or prove runtime behavior |
+| `inspect` | HTTP 402, x402 v1/v2 payment document, `accepts[]`, discovery manifests, latency and response digest | Does not sign, pay, settle, retry, or verify delivery |
+
+Exit codes are stable for automation: `0` PASS, `1` FAIL, `2` UNKNOWN/network error, `3` usage error.
 
 ## GitHub Actions
 
-Run the check in pull requests without installing a package or storing a key:
+Add a read-only check to pull requests:
 
 ```yaml
 name: MCP Trust Check
@@ -40,122 +43,49 @@ jobs:
   mcp-trust:
     runs-on: ubuntu-latest
     steps:
-      - uses: xka0085-byte/mcpdoctor@v1
+      - uses: xka0085-byte/mcp-doctor@v1
         with:
           endpoint: https://your-mcp-server.example/mcp
           mode: schema
           format: markdown
 ```
 
-`schema` performs read-only `initialize` and `tools/list` checks. Use `mode: inspect`
-for a read-only x402 HTTP 402 preflight. A non-zero exit means the observed result
-was `FAIL` or `UNKNOWN`; this is a CI gate, not a security certification.
+Use `mode: inspect` for an x402 preflight. The action fails on `FAIL` or `UNKNOWN` by default; set `fail-on: false` for an informational check.
 
-## Why
+## Starter template
 
-Shipping an x402 service ourselves ([ReceiptRail](https://github.com/xka0085-byte/agenttoll)),
-we hit every way a paid endpoint can silently break:
+Start a new MCP project with this check already wired in:
 
-- an endpoint that validates the request body **before** returning the 402
-  challenge is invisible to every x402 client — they only react to `402`;
-- payment documents arrive in **four different places** (`Payment-Required` /
-  `X-Payment-Required` / `WWW-Authenticate` headers, or the response body) and
-  in **two different shapes** (v1 top-level `accepts[]`, v2 nested `x402.accepts`);
-  parsers that only look at one place report false failures;
-- vendor hint headers without `accepts[]` can shadow the real payment document.
+- [Secure MCP Server Starter](examples/secure-mcp-server-starter/)
 
-Each check in mcpdoctor maps to a failure mode we actually hit in production.
+The check is read-only and should target a public test endpoint. Do not place private keys or credentials in workflow inputs.
 
-## Usage
+## What the report means
 
-```bash
-mcpdoctor inspect <url> [--method=GET|POST] [--format=json|markdown]
+`PASS` means the observed response matched the checks in this version. It is not a security audit, protocol certification, payment-success guarantee, or proof that an endpoint is safe. `UNKNOWN` means the endpoint could not be observed within the timeout or response-size limits.
+
+Example schema failure:
+
+```text
+FAIL REQUIRED_PROPERTY_UNDEFINED tools[0] requires undeclared property query
 ```
 
-| Option | Default | Description |
-|---|---|---|
-| `--method` | `GET` | HTTP verb for the probe (`POST` sends `{}`) |
-| `--format` | `markdown` | `json` for CI / machine-readable reports |
-| `--json` | — | shorthand for `--format=json` |
+Example x402 failure:
 
-Exit codes: `0` PASS · `1` FAIL · `2` UNKNOWN (network/timeout) · `3` usage error.
-
-## Tool schema checks
-
-Inspect MCP initialization and `tools/list` without calling tools:
-
-```bash
-node mcpdoctor/bin/mcpdoctor.mjs schema https://your-mcp-server.example/mcp --json
+```text
+FAIL NO_402 Expected HTTP 402, received 400
 ```
 
-This is deterministic static lint, not a prediction of model tool selection or a cross-client certification. See [`SCHEMA-MVP.md`](./SCHEMA-MVP.md).
+## Why it exists
 
-## Real examples (captured 2026-09-29, against live endpoints)
+The checks come from failure modes observed while building ReceiptRail: body validation that prevents an x402 challenge, payment documents in multiple headers/body shapes, and vendor hint headers that can hide the real `accepts[]` document.
 
+mcpdoctor is not an MCP server. It is an independent, read-only endpoint inspector. It is not affiliated with mcpdoctor.dev; verify the npm scope is `@eidonze/mcpdoctor`.
 
-Inspecting an MCP endpoint that is free (no payment gate) — the tool reports
-the 200 instead of a 402, and still verifies the discovery manifests:
+## Feedback
 
-```json
-{
-  "endpoint": "https://agenttoll-receipts.app.workbuddy.host/mcp",
-  "method": "POST",
-  "finalStatus": "FAIL",
-  "http": { "status": 200, "elapsedMs": 2830, "bodyBytes": 82,
-            "bodySha256": "598dc097dcca1e573c742100863899c00724a021b421a5bb49952d49fec6b4f4" },
-  "findings": [
-    { "status": "FAIL", "code": "NO_402", "message": "Expected HTTP 402, received 200" }
-  ],
-  "metadata": [
-    { "path": "/.well-known/mcp/server.json", "status": 200, "reachable": true }
-  ]
-}
-```
+Found a false positive or a protocol shape we should support? [Open an issue](https://github.com/xka0085-byte/mcp-doctor/issues). Include the command, redacted output, Node version, and whether the endpoint is MCP or x402. Never include tokens, payment signatures, or private URLs.
 
-Inspecting the official x402 demo endpoint — it does return 402, but ships a
-payment document mcpdoctor cannot parse, which is exactly the class of silent
-breakage this CLI exists to catch:
+## License
 
-```json
-{
-  "endpoint": "https://x402.org/protected",
-  "finalStatus": "FAIL",
-  "http": { "status": 402 },
-  "headers": { "paymentRequired": true },
-  "findings": [
-    { "status": "FAIL", "code": "NO_ACCEPTS",
-      "message": "No recognizable payment requirement found" }
-  ]
-}
-```
-
-## What it does NOT do
-
-- No MCP protocol session: no `initialize`, no `tools/list` — mcpdoctor
-  checks what an endpoint *advertises* (402 documents, discovery manifests),
-  not a full MCP handshake.
-- No wallet, signing, settlement, or retries. Read-only preflight only.
-- `PASS` means the observed 402 document had recognizable, complete fields —
-  it is not a security or payment-success certification.
-
-## Why
-
-We ship an x402 service ourselves ([ReceiptRail](https://github.com/xka0085-byte/agenttoll))
-and hit every way a paid endpoint can silently break:
-
-- an endpoint that validates the request body **before** returning the 402
-  challenge is invisible to every x402 client — they only react to `402`;
-- payment documents arrive in **four different places** and **two different
-  shapes**; parsers that only look at one place report false failures;
-- vendor hint headers without `accepts[]` can shadow the real payment document.
-
-Each check in mcpdoctor maps to a failure mode we actually hit in production.
-
-## Part of the Agent / Chain Evidence Tools suite
-
-Read-only diagnostics for AI agents on Web3 —
-[hub & docs](https://xka0085-byte.github.io/evidence-tools/) ·
-[ReceiptRail (live MCP service)](https://github.com/xka0085-byte/agenttoll) ·
-[npm: @eidonze/mcpdoctor](https://www.npmjs.com/package/@eidonze/mcpdoctor)
-
-MIT licensed. Known limitations are documented, not hidden.
+MIT
