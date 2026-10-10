@@ -31,6 +31,23 @@ npx @eidonze/mcpdoctor@0.1.5 inspect https://your-api.example/paid --method=POST
 
 Requires Node.js 18+. No API key or wallet is needed.
 
+Example schema run against a live endpoint:
+
+```text
+$ npx @eidonze/mcpdoctor schema https://your-mcp-server.example/mcp
+
+MCP Tool Schema Report
+- Status: FAIL
+- Endpoint: https://your-mcp-server.example/mcp
+- Protocol: 2025-06-18
+- Tools: 12
+
+- FAIL REQUIRED_PROPERTY_UNDEFINED: tools[3] requires undeclared property query
+- WARN PROPERTY_DESCRIPTION_MISSING: tools[7].limit has no description
+```
+
+The exact same run against a healthy server prints `Status: PASS` and exits 0, so CI can gate on it.
+
 ## Which command?
 
 | Command | Checks | Does not do |
