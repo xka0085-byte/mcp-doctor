@@ -1,3 +1,7 @@
+## 0.1.6
+- fix: parse SSE-wrapped JSON-RPC responses (Streamable HTTP servers may answer POST with text/event-stream, e.g. mcp.deepwiki.com) — found by cross-validating against a live registry server
+- fix: CLI-reported inspectorVersion now follows package.json instead of a stale constant
+
 # Changelog
 
 ## 0.1.5 - Visibility release
