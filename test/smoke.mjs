@@ -29,6 +29,18 @@ const server = createServer(async (request, response) => {
     }
     response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result: { tools: [{ name: 'hello', description: 'Returns a greeting.', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Name.' } }, required: ['name'] } }] } })); return;
   }
+  // regression (found against production DeepWiki): servers may answer POST with
+  // an SSE stream (text/event-stream) even for plain JSON-RPC calls
+  if (request.url === '/mcp-sse') {
+    let incoming = ''; for await (const chunk of request) incoming += chunk;
+    const rpc = JSON.parse(incoming || '{}');
+    const payload = rpc.method === 'initialize'
+      ? { jsonrpc: '2.0', id: rpc.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'sse-fixture', version: '1' }, capabilities: {} } }
+      : { jsonrpc: '2.0', id: rpc.id, result: { tools: [{ name: 'hello', description: 'Returns a greeting.', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Name.' } }, required: ['name'] } }] } };
+    response.writeHead(200, { 'content-type': 'text/event-stream' });
+    response.end(`event: message\ndata: ${JSON.stringify(payload)}\n\n`);
+    return;
+  }
   // regression (our original production bug): body validation must not shadow the 402
   if (request.url === '/bad-400') {
     response.writeHead(400, { 'content-type': 'application/json' });
@@ -83,6 +95,11 @@ try {
   const schemaReport = JSON.parse(schema.stdout);
   assert.equal(schemaReport.finalStatus, 'PASS', JSON.stringify(schemaReport.findings));
   assert.equal(schemaReport.mcp.toolCount, 1);
+  const sse = await runSchema(`http://127.0.0.1:${port}/mcp-sse`);
+  assert.equal(sse.code, 0, sse.stderr);
+  const sseReport = JSON.parse(sse.stdout);
+  assert.equal(sseReport.finalStatus, 'PASS', JSON.stringify(sseReport.findings));
+  assert.equal(sseReport.mcp.toolCount, 1, 'SSE-wrapped JSON-RPC must be parsed');
   const help = await new Promise((resolve) => {
     const child = spawn(process.execPath, [cli, '--help'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = ''; child.stdout.on('data', (chunk) => { stdout += chunk; }); child.on('close', (code) => resolve({ code, stdout }));

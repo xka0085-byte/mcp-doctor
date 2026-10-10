@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 const MAX_BODY = 1024 * 1024;
 const TIMEOUT = 10_000;
-const VERSION = '0.1.4';
+const VERSION = '0.1.5';
 
 const help = `mcpdoctor ${VERSION}
 
@@ -47,6 +47,16 @@ function headersOf(headers) {
 }
 
 function json(text) { try { return JSON.parse(text); } catch { return null; } }
+function jsonrpc(text) {
+  const direct = json(text);
+  if (direct && (direct.result !== undefined || direct.error !== undefined)) return direct;
+  for (const line of String(text).split(/\r?\n/)) {
+    if (!line.startsWith('data:')) continue;
+    const obj = json(line.slice(5).trim());
+    if (obj && (obj.result !== undefined || obj.error !== undefined)) return obj;
+  }
+  return direct;
+}
 
 function findPaymentDocument(headers, body) {
   const candidates = [headers['payment-required'], headers['x-payment-required'], headers['www-authenticate'], body].filter(Boolean);
@@ -133,13 +143,13 @@ async function schemaCommand(url, format) {
   const response = await fetch(url, { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT), headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': '2025-03-26' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'mcpdoctor', version: VERSION } } }) });
   const initText = await readBody(response);
   if (!response.ok) throw new Error(`MCP initialize returned HTTP ${response.status}`);
-  const init = json(initText);
+  const init = jsonrpc(initText);
   if (!init?.result?.protocolVersion) add('INITIALIZE_RESPONSE_INVALID', 'FAIL', 'Initialize response did not include result.protocolVersion');
   const headers = { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': init?.result?.protocolVersion ?? '2025-03-26' };
   const list = await fetch(url, { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT), headers, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) });
   const listText = await readBody(list);
   if (!list.ok) throw new Error(`tools/list returned HTTP ${list.status}`);
-  const parsed = json(listText);
+  const parsed = jsonrpc(listText);
   const tools = parsed?.result?.tools;
   if (!Array.isArray(tools)) add('TOOLS_LIST_INVALID', 'FAIL', 'tools/list response did not contain result.tools[]');
   else if (!tools.length) add('NO_TOOLS', 'WARN', 'Server exposes an empty tool list');
