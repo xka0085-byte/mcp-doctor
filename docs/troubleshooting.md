@@ -32,4 +32,4 @@ The endpoint could not be observed within the timeout or response-size limits, o
 
 Open a [GitHub issue](https://github.com/xka0085-byte/mcp-doctor/issues) with the command, redacted output, Node version, and endpoint type. Never include tokens, payment signatures, credentials, private URLs, or response data that you are not allowed to share.
 
-[Home](index.html) 路 [MCP schema guide](mcp-schema-checker.html) 路 [x402 guide](x402-endpoint-inspector.html)
+[Home](index.html) · [MCP schema guide](mcp-schema-checker.html) · [x402 guide](x402-endpoint-inspector.html)

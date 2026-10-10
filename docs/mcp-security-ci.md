@@ -54,4 +54,4 @@ This is not a complete MCP security audit. It does not certify prompt-injection 
 
 See [MCP Schema Checker](mcp-schema-checker.html), [x402 Inspector](x402-endpoint-inspector.html), and [Troubleshooting](troubleshooting.html).
 
-[Action source](https://github.com/xka0085-byte/mcp-doctor/blob/main/action.yml) 路 [npm package](https://www.npmjs.com/package/@eidonze/mcpdoctor)
+[Action source](https://github.com/xka0085-byte/mcp-doctor/blob/main/action.yml) · [npm package](https://www.npmjs.com/package/@eidonze/mcpdoctor)

@@ -74,4 +74,4 @@ PASS means this version observed a valid response for the deterministic checks a
 
 See also: [MCP Security CI](mcp-security-ci.html), [Troubleshooting](troubleshooting.html), and the [MCP protocol specification](https://modelcontextprotocol.io/specification/2025-06-18).
 
-[Run mcpdoctor](https://github.com/xka0085-byte/mcp-doctor) 路 [npm package](https://www.npmjs.com/package/@eidonze/mcpdoctor)
+[Run mcpdoctor](https://github.com/xka0085-byte/mcp-doctor) · [npm package](https://www.npmjs.com/package/@eidonze/mcpdoctor)

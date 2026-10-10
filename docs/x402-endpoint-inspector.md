@@ -56,4 +56,4 @@ A PASS only means the observed challenge had recognizable fields. It does not me
 
 See [x402 Endpoint Inspector](x402-endpoint-inspector.html), [Troubleshooting](troubleshooting.html), and the [x402 protocol site](https://www.x402.org/).
 
-[Source and releases](https://github.com/xka0085-byte/mcp-doctor) 路 [npm package](https://www.npmjs.com/package/@eidonze/mcpdoctor)
+[Source and releases](https://github.com/xka0085-byte/mcp-doctor) · [npm package](https://www.npmjs.com/package/@eidonze/mcpdoctor)
